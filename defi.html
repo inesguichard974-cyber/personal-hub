@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30 Jours d'Autodiscipline</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --bg: #fdfbf7;
+            --card-bg: #ffffff;
+            --text: #333;
+            --success: #27ae60;
+            --priority-bg: #e8f6f3;
+            --priority-border: #1abc9c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* BOUTON RETOUR ACCUEIL */
+        .home-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            text-decoration: none;
+            background-color: #ffffff;
+            color: #2c3e50;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            z-index: 100;
+        }
+        .home-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+        .container { max-width: 800px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 30px; margin-top: 20px;}
+        h1 { color: var(--primary); margin-bottom: 5px;}
+        .subtitle { font-style: italic; color: #666; font-size: 0.9em;}
+
+        .progress-container {
+            background-color: #ddd;
+            border-radius: 10px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background-color: var(--success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 5px;
+            margin-bottom: 30px;
+        }
+        .day-btn {
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: var(--card-bg);
+            cursor: pointer;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .day-btn.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .day-btn.completed { background-color: var(--success); color: white; border-color: var(--success); }
+
+        .task-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .yesterday-tasks {
+            background-color: var(--priority-bg);
+            border: 2px solid var(--priority-border);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .yesterday-tasks h3 {
+            margin-top: 0;
+            color: var(--priority-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .habit-item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .habit-item:last-child { border-bottom: none; }
+        .habit-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+
+        input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+        label { font-weight: bold; font-size: 1.1em; cursor: pointer; }
+        .details { font-size: 0.9em; color: #666; margin-left: 34px; margin-bottom: 10px; }
+        textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit; margin-top: 5px; box-sizing: border-box; }
+        .input-group { margin-left: 34px; margin-top: 10px; }
+        .input-group input { margin-bottom: 8px; }
+
+    </style>
+</head>
+<body>
+
+<a href="index.html" class="home-btn">🏠 Accueil</a>
+
+<div class="container">
+    <header>
+        <h1>🏆 30 Jours d'Autodiscipline</h1>
+        <p class="subtitle">"La régularité est plus puissante que l'intensité."</p>
+        <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+        <div id="progressText" style="text-align: center; font-weight: bold; font-size: 0.9em;">0%</div>
+    </header>
+
+    <div class="days-grid" id="daysGrid"></div>
+
+    <div class="task-card">
+        <h2 id="currentDayTitle" style="border-bottom: 2px solid var(--primary); padding-bottom:10px;">Jour 1</h2>
+        <div id="yesterdayTasksContainer"></div>
+        <div id="habitsList"></div>
+    </div>
+</div>
+
+<script>
+    const totalDays = 30;
+    let currentDay = 1;
+    const habitsTemplate = [
+        { id: 'h1', icon: '🛌', title: 'Se réveiller à la même heure', desc: 'Faire le lit immédiatement.' },
+        { id: 'h2', icon: '🎧', title: 'Lire ou écouter un podcast', desc: '20 min pour nourrir l\'esprit.' },
+        { id: 'h3', icon: '🙏', title: 'Positivité & Gratitude', desc: 'Notez 3 choses positives :', type: 'textarea' },
+        { id: 'h4', icon: '🔥', title: 'Focus 1-2h (Power Session)', desc: 'Une tâche clé sans distraction.' },
+        { id: 'h5', icon: '🧹', title: 'Ranger et organiser', desc: '10-15 min pour désencombrer.' },
+        { id: 'h6', icon: '🏃', title: 'Bouger et se déconnecter', desc: '30 min de marche ou sport.' },
+        { id: 'h7', icon: '🥗', title: 'Repas équilibré', desc: 'Protéines, fibres, graisses saines.' },
+        { id: 'h8', icon: '⏳', title: 'Délai 24h avant achat', desc: 'Pas d\'achat impulsif.' },
+        { id: 'h9', icon: '📝', title: 'Planifier demain', desc: 'Identifiez les 3 tâches "must-do" pour demain :', type: 'planner' }
+    ];
+
+    let data = JSON.parse(localStorage.getItem('defi30joursData_v2')) || {};
+
+    function init() {
+        renderDaysGrid();
+        loadDay(currentDay);
+        updateOverallProgress();
+    }
+
+    function renderDaysGrid() {
+        const grid = document.getElementById('daysGrid');
+        grid.innerHTML = '';
+        for (let i = 1; i <= totalDays; i++) {
+            const btn = document.createElement('div');
+            btn.className = 'day-btn';
+            btn.innerText = i;
+            if (i === currentDay) btn.classList.add('active');
+            if (data[i] && Object.keys(data[i]).length > 0) btn.classList.add('completed');
+            btn.onclick = () => { currentDay = i; renderDaysGrid(); loadDay(i); };
+            grid.appendChild(btn);
+        }
+    }
+
+    function loadDay(day) {
+        document.getElementById('currentDayTitle').innerText = `Jour ${day}`;
+        const habitsContainer = document.getElementById('habitsList');
+        const prevTasksContainer = document.getElementById('yesterdayTasksContainer');
+        habitsContainer.innerHTML = '';
+        prevTasksContainer.innerHTML = '';
+
+        if (day > 1) {
+            const prevDayData = data[day - 1] || {};
+            const t1 = prevDayData['plan_1'] || '', t2 = prevDayData['plan_2'] || '', t3 = prevDayData['plan_3'] || '';
+            if (t1 || t2 || t3) {
+                let tasksHtml = `<div class="yesterday-tasks"><h3>🚀 Priorités définies hier</h3>`;
+                if(t1) tasksHtml += createCheckableTask(day, 'prev_task_1', t1);
+                if(t2) tasksHtml += createCheckableTask(day, 'prev_task_2', t2);
+                if(t3) tasksHtml += createCheckableTask(day, 'prev_task_3', t3);
+                tasksHtml += `</div>`;
+                prevTasksContainer.innerHTML = tasksHtml;
+            }
+        }
+
+        habitsTemplate.forEach(habit => {
+            const dayData = data[day] || {};
+            const div = document.createElement('div');
+            div.className = 'habit-item';
+            let html = `
+                <div class="habit-header">
+                    <input type="checkbox" id="${habit.id}" ${dayData[habit.id + '_check'] ? 'checked' : ''} onchange="saveCheck(${day}, '${habit.id}')">
+                    <label for="${habit.id}">${habit.icon} ${habit.title}</label>
+                </div>
+                <div class="details">${habit.desc}</div>
+            `;
+            if (habit.type === 'textarea') html += `<div class="input-group"><textarea placeholder="..." rows="3" oninput="saveValue(${day}, '${habit.id}_text', this.value)">${dayData[habit.id + '_text'] || ''}</textarea></div>`;
+            if (habit.type === 'planner') html += `<div class="input-group"><input type="text" placeholder="1. Tâche prioritaire..." value="${dayData['plan_1'] || ''}" oninput="saveValue(${day}, 'plan_1', this.value)"><input type="text" placeholder="2..." value="${dayData['plan_2'] || ''}" oninput="saveValue(${day}, 'plan_2', this.value)"><input type="text" placeholder="3..." value="${dayData['plan_3'] || ''}" oninput="saveValue(${day}, 'plan_3', this.value)"></div>`;
+            div.innerHTML = html;
+            habitsContainer.appendChild(div);
+        });
+    }
+
+    function createCheckableTask(day, key, text) {
+        const isChecked = (data[day] || {})[key] ? 'checked' : '';
+        return `<div class="habit-header" style="margin-left:10px;"><input type="checkbox" id="${key}" ${isChecked} onchange="saveSimpleCheck(${day}, '${key}')"><label for="${key}" style="font-weight:normal;">${text}</label></div>`;
+    }
+
+    function saveCheck(day, id) { if (!data[day]) data[day] = {}; data[day][id + '_check'] = document.getElementById(id).checked; saveToLocal(); }
+    function saveSimpleCheck(day, key) { if (!data[day]) data[day] = {}; data[day][key] = document.getElementById(key).checked; saveToLocal(); }
+    function saveValue(day, key, value) { if (!data[day]) data[day] = {}; data[day][key] = value; saveToLocal(); }
+    function saveToLocal() { localStorage.setItem('defi30joursData_v2', JSON.stringify(data)); updateOverallProgress(); renderDaysGrid(); }
+    function updateOverallProgress() {
+        let totalChecks = 0; const totalPossible = totalDays * 9;
+        for (let d = 1; d <= totalDays; d++) {
+            if (data[d]) {
+                habitsTemplate.forEach(h => { if (data[d][h.id + '_check']) totalChecks++; });
+                if(data[d]['prev_task_1']) totalChecks++; if(data[d]['prev_task_2']) totalChecks++; if(data[d]['prev_task_3']) totalChecks++;
+            }
+        }
+        document.getElementById('progressBar').style.width = Math.min(100, Math.round((totalChecks / totalPossible) * 100)) + '%';
+        document.getElementById('progressText').innerText = Math.min(100, Math.round((totalChecks / totalPossible) * 100)) + '% complété';
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mon Vision Board</title>
+    <style>
+        /* --- CONFIGURATION --- */
+        :root {
+            --bg: #ffffff;
+            --text: #333333;
+            --accent: 255, 107, 107;
+            --border: #eeeeee;
+            --radius: 12px;
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            margin: 0; 
+            font-family: var(--font); 
+            background: var(--bg); 
+            color: var(--text); 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        /* --- BOUTON RETOUR (NOUVEAU) --- */
+        /* Pour revenir au menu principal facilement */
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-decoration: none;
+            background: #eee;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #555;
+            font-weight: bold;
+        }
+
+        /* --- SIDEBAR (PC) --- */
+        .sidebar { 
+            width: 280px; 
+            background: #fafafa; 
+            padding: 40px 30px; 
+            border-right: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; 
+            overflow-y: auto;
+            z-index: 10;
+            position: relative; /* Pour le bouton retour */
+        }
+        .logo { font-size: 1.8rem; font-weight: 800; color: rgb(var(--accent)); margin-bottom: 10px; line-height: 1.2; }
+        .sidebar p { color: #888; font-size: 0.95rem; line-height: 1.6; margin: 0; }
+
+        /* --- CONTENU PRINCIPAL --- */
+        .main { 
+            flex: 1; 
+            padding: 40px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 30px; 
+            -webkit-overflow-scrolling: touch; 
+        }
+
+        h2 { margin: 0 0 15px 0; font-size: 1.4rem; color: var(--text); }
+
+        /* --- FORMULAIRE --- */
+        .add-box {
+            background: white; 
+            border: 1px solid var(--border); 
+            padding: 20px; 
+            border-radius: var(--radius);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.03); 
+            display: flex; 
+            gap: 15px; 
+            align-items: flex-end; 
+            flex-wrap: wrap; 
+        }
+        
+        .input-group { display: flex; flex-direction: column; flex: 1; min-width: 150px; } 
+        
+        label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 6px; font-weight: 700; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; width: 100%; font-size: 1rem; background: #fff; }
+        input:focus { border-color: rgb(var(--accent)); box-shadow: 0 0 0 3px rgba(var(--accent), 0.1); }
+        
+        button { 
+            background: rgb(var(--accent)); 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-size: 0.95rem; 
+            min-width: 120px;
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* --- GRILLE --- */
+        .vision-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
+            gap: 15px;
+        }
+
+        .vision-card {
+            aspect-ratio: 1 / 1;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .vision-card:active { transform: scale(0.96); }
+
+        .card-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; z-index: 2; word-wrap: break-word; max-width: 100%; }
+        .card-percent { font-size: 2.2rem; font-weight: 800; z-index: 2; margin: 5px 0; }
+        .card-detail { font-size: 0.8rem; opacity: 0.8; z-index: 2; }
+
+        /* --- LISTE --- */
+        .list-container { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #f9f9f9; flex-wrap: wrap; gap: 10px; }
+        .progress-track { flex: 1; height: 6px; background: #f0f0f0; border-radius: 10px; margin: 0 15px; min-width: 80px; }
+        .progress-bar { height: 100%; background: rgb(var(--accent)); border-radius: 10px; }
+        .controls { display: flex; gap: 8px; }
+        .btn-small { padding: 6px 12px; font-size: 0.8rem; min-width: auto; height: 32px; }
+        .btn-del { background: #ffebee; color: #d32f2f; }
+        .btn-edit { background: #333; }
+
+        /* ============================================================
+           🚨 ZONE MOBILE & TABLETTE (C'est ici que ça se joue) 🚨
+           ============================================================ */
+        @media (max-width: 1280px) { 
+            
+            body {
+                flex-direction: column; /* Tout s'empile verticalement */
+                height: auto; 
+                overflow-x: hidden;
+                overflow-y: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                padding: 15px 20px; /* Padding réduit */
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                flex-direction: row; 
+                align-items: center;
+                justify-content: space-between;
+                background: #fff;
+            }
+
+            .logo { font-size: 1.4rem; margin: 0; }
+            .sidebar p { display: none; } /* Cache le texte description */
+            .back-btn { position: static; margin-left: auto; } /* Ajuste le bouton retour */
+
+            .main {
+                padding: 20px;
+                overflow: visible;
+                gap: 25px;
+            }
+
+            .add-box {
+                padding: 15px;
+                gap: 10px;
+            }
+            .input-group { min-width: 45%; } 
+            button { width: 100%; margin-top: 5px; }
+
+            .list-item > div:first-child { width: 100%; margin-bottom: 5px; }
+            .progress-track { width: 100%; margin: 10px 0; }
+            .controls { width: 100%; justify-content: flex-end; }
+        }
+
+        @media (max-width: 600px) {
+            .input-group { min-width: 100%; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">👁️ Vision Board</div>
+        <p>Visualise tes rêves et regarde-les se réaliser.</p>
+        <a href="index.html" class="back-btn">🏠 Accueil</a>
+    </div>
+
+    <div class="main">
+        
+        <div class="add-box">
+            <div class="input-group">
+                <label>Objectif</label>
+                <input type="text" id="newTitle" placeholder="Ex: Voyage...">
+            </div>
+            <div class="input-group">
+                <label>Cible</label>
+                <input type="number" id="newTarget" placeholder="1000">
+            </div>
+            <div class="input-group">
+                <label>Unité</label>
+                <input type="text" id="newUnit" placeholder="€">
+            </div>
+            <button onclick="addGoal()">Ajouter</button>
+        </div>
+
+        <div>
+            <h2>Mes Visions</h2>
+            <div class="vision-grid" id="gridContainer"></div>
+        </div>
+
+        <div class="list-container">
+            <h2>Détails</h2>
+            <div id="listContainer"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // Le code JavaScript reste identique
+        let goals = JSON.parse(localStorage.getItem('myVisionBoard')) || [];
+
+        function addGoal() {
+            const title = document.getElementById('newTitle').value;
+            const target = parseFloat(document.getElementById('newTarget').value);
+            const unit = document.getElementById('newUnit').value || "";
+
+            if (title && target) {
+                goals.push({ id: Date.now(), title, current: 0, target, unit });
+                saveAndRender();
+                document.getElementById('newTitle').value = "";
+                document.getElementById('newTarget').value = "";
+                document.getElementById('newUnit').value = "";
+            } else {
+                alert("Il faut un titre et un chiffre cible !");
+            }
+        }
+
+        function updateProgress(id, amount) {
+            const goal = goals.find(g => g.id === id);
+            if (goal) {
+                goal.current = Math.max(0, Math.min(goal.target, goal.current + amount));
+                saveAndRender();
+            }
+        }
+
+        function setExactProgress(id) {
+            const goal = goals.find(g => g.id === id);
+            if (goal) {
+                const val = prompt(`Nouvelle valeur pour "${goal.title}" :`, goal.current);
+                if (val !== null) {
+                    const parsed = parseFloat(val);
+                    if (!isNaN(parsed)) {
+                        goal.current = Math.max(0, Math.min(goal.target, parsed));
+                        saveAndRender();
+                    }
+                }
+            }
+        }
+
+        function deleteGoal(id) {
+            if (confirm("Supprimer ?")) {
+                goals = goals.filter(g => g.id !== id);
+                saveAndRender();
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('myVisionBoard', JSON.stringify(goals));
+            renderGrid();
+            renderList();
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('gridContainer');
+            container.innerHTML = goals.length ? '' : '<p style="color:#aaa; width:100%;">Ajoute ton premier objectif ci-dessus !</p>';
+            
+            goals.forEach(g => {
+                const percent = Math.round((g.current / g.target) * 100);
+                const opacity = Math.max(0.08, percent / 100);
+                const txtColor = percent > 50 ? '#fff' : '#333';
+                
+                container.innerHTML += `
+                    <div class="vision-card" onclick="setExactProgress(${g.id})" 
+                         style="background-color: rgba(255, 107, 107, ${opacity}); color:${txtColor}; border-color: rgba(255, 107, 107, ${opacity})">
+                        <div class="card-title">${g.title}</div>
+                        <div class="card-percent">${percent}%</div>
+                        <div class="card-detail" style="color:${percent > 50 ? 'rgba(255,255,255,0.8)' : '#888'}">${g.current}/${g.target} ${g.unit}</div>
+                    </div>`;
+            });
+        }
+
+        function renderList() {
+            const container = document.getElementById('listContainer');
+            container.innerHTML = "";
+            goals.forEach(g => {
+                container.innerHTML += `
+                    <div class="list-item">
+                        <div style="min-width:120px"><strong>${g.title}</strong><br><span style="color:#999;font-size:0.8em">${g.current}/${g.target} ${g.unit}</span></div>
+                        <div class="progress-track"><div class="progress-bar" style="width:${(g.current/g.target)*100}%"></div></div>
+                        <div class="controls">
+                            <button class="btn-small btn-edit" onclick="setExactProgress(${g.id})">✏️</button>
+                            <button class="btn-small" onclick="updateProgress(${g.id}, 1)">+1</button>
+                            <button class="btn-small btn-del" onclick="deleteGoal(${g.id})">🗑️</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        renderGrid();
+        renderList();
+    </script>
+</body>
+</html>

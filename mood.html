@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mon Mood Tracker</title>
+    <style>
+        :root {
+            --bg: #fdfbf7;
+            --text: #333;
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            
+            /* Les Couleurs des Humeurs */
+            --mood-amazing: #2ecc71;  /* Super (Vert) */
+            --mood-good: #f1c40f;     /* Bien (Jaune) */
+            --mood-neutral: #95a5a6;  /* Bof (Gris) */
+            --mood-bad: #e67e22;      /* Pas top (Orange) */
+            --mood-awful: #e74c3c;    /* Horrible (Rouge) */
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: var(--font);
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Bouton Retour Accueil */
+        .home-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            text-decoration: none;
+            background-color: #ffffff;
+            color: #333;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        h1 { margin-top: 40px; margin-bottom: 20px; font-size: 1.5rem; text-align: center; }
+
+        /* Navigation du Mois */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 350px;
+            margin-bottom: 20px;
+        }
+        .nav-btn {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .current-month { font-weight: bold; font-size: 1.2rem; text-transform: capitalize; }
+
+        /* La Grille du Calendrier */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7 jours par semaine */
+            gap: 8px;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        /* Jours de la semaine (Lun, Mar...) */
+        .weekday {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #999;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        /* Les cases des jours */
+        .day {
+            aspect-ratio: 1 / 1;
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: transform 0.1s;
+            position: relative;
+        }
+        .day:active { transform: scale(0.9); }
+        .day.empty { background: transparent; border: none; cursor: default; }
+
+        /* Palette de sélection (En bas) */
+        .palette-container {
+            position: fixed;
+            bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            border: 1px solid #eee;
+            z-index: 100;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .color-btn.selected { transform: scale(1.2); border-color: #333; }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="home-btn">🏠 Accueil</a>
+
+    <h1>🎨 Mood Tracker</h1>
+
+    <div class="header-controls">
+        <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+        <span class="current-month" id="monthLabel">Janvier 2024</span>
+        <button class="nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+
+    <div class="calendar-grid" id="calendar">
+        </div>
+
+    <div class="palette-container">
+        <div class="color-btn" style="background: var(--mood-amazing)" onclick="selectMood('amazing', this)" title="Super"></div>
+        <div class="color-btn" style="background: var(--mood-good)" onclick="selectMood('good', this)" title="Bien"></div>
+        <div class="color-btn" style="background: var(--mood-neutral)" onclick="selectMood('neutral', this)" title="Bof"></div>
+        <div class="color-btn" style="background: var(--mood-bad)" onclick="selectMood('bad', this)" title="Pas top"></div>
+        <div class="color-btn" style="background: var(--mood-awful)" onclick="selectMood('awful', this)" title="Horrible"></div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const colors = {
+            'amazing': '#2ecc71',
+            'good': '#f1c40f',
+            'neutral': '#95a5a6',
+            'bad': '#e67e22',
+            'awful': '#e74c3c'
+        };
+        
+        let currentDate = new Date();
+        let selectedMood = 'good'; // Mood par défaut
+        
+        // Chargement des données
+        let moodData = JSON.parse(localStorage.getItem('myMoodTracker')) || {};
+
+        function init() {
+            // Sélectionner le bouton jaune par défaut visuellement
+            const defaultBtn = document.querySelector('.color-btn:nth-child(2)');
+            if(defaultBtn) defaultBtn.classList.add('selected');
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar');
+            const monthLabel = document.getElementById('monthLabel');
+            grid.innerHTML = '';
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            // Mettre à jour le titre (ex: Janvier 2024)
+            const options = { month: 'long', year: 'numeric' };
+            monthLabel.innerText = new Date(year, month).toLocaleDateString('fr-FR', options);
+
+            // Jours de la semaine
+            const daysOfWeek = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+            daysOfWeek.forEach(d => {
+                const div = document.createElement('div');
+                div.className = 'weekday';
+                div.innerText = d;
+                grid.appendChild(div);
+            });
+
+            // Calculer les jours vides avant le 1er du mois
+            const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 = Dimanche
+            // On ajuste pour que Lundi soit 0 (standard français)
+            const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+            for (let i = 0; i < adjustedFirstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'day empty';
+                grid.appendChild(empty);
+            }
+
+            // Nombre de jours dans le mois
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.innerText = i;
+                
+                // Clé unique pour sauvegarder (ex: "2024-0-15")
+                const dateKey = `${year}-${month}-${i}`;
+                
+                // Si une humeur est déjà enregistrée, on met la couleur
+                if (moodData[dateKey]) {
+                    dayDiv.style.backgroundColor = colors[moodData[dateKey]];
+                    dayDiv.style.color = 'white'; // Texte blanc sur couleur
+                    dayDiv.style.border = 'none';
+                }
+
+                // Clic sur un jour
+                dayDiv.onclick = () => {
+                    // Sauvegarde
+                    moodData[dateKey] = selectedMood;
+                    localStorage.setItem('myMoodTracker', JSON.stringify(moodData));
+                    
+                    // Mise à jour visuelle immédiate
+                    dayDiv.style.backgroundColor = colors[selectedMood];
+                    dayDiv.style.color = 'white';
+                    dayDiv.style.border = 'none';
+                    
+                    // Petit effet de vibration (haptic) si dispo sur mobile
+                    if (navigator.vibrate) navigator.vibrate(10); 
+                };
+
+                grid.appendChild(dayDiv);
+            }
+        }
+
+        function changeMonth(offset) {
+            currentDate.setMonth(currentDate.getMonth() + offset);
+            renderCalendar();
+        }
+
+        function selectMood(mood, btnElement) {
+            selectedMood = mood;
+            
+            // Gestion visuelle des boutons ronds
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+            btnElement.classList.add('selected');
+        }
+
+        init();
+    </script>
+</body>
+</html>
